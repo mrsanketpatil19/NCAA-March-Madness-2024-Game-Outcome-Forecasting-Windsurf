@@ -41,17 +41,32 @@ An advanced machine learning-powered web application for predicting NCAA basketb
 python3 --version
 
 # Install dependencies
-pip3 install fastapi uvicorn pandas numpy scikit-learn xgboost plotly jinja2 python-multipart
+pip3 install -r requirements.txt
+
+# Copy example environment file
+cp .env.example .env
 ```
 
 ### Running the Application
+
+#### Local Development
 ```bash
 # Clone and navigate to project
 cd /path/to/Mrunali_NCAA
 
-# Start the web application
+# Start the web application with sample data
 python3 launch_app.py
 ```
+
+#### Production Deployment (Render.com)
+1. Create a new Web Service on Render
+2. Connect your GitHub repository
+3. Set the following environment variables:
+   - `USE_SAMPLE_DATA`: `true` (for initial deployment)
+   - `PYTHON_VERSION`: `3.9`
+4. Set build command: `pip install -r requirements.txt`
+5. Set start command: `uvicorn main:app --host 0.0.0.0 --port $PORT`
+6. Deploy!
 
 The application will automatically:
 - Load the ML model and historical data

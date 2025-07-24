@@ -22,8 +22,18 @@ class NCAAPredictor:
     """NCAA Tournament Prediction System"""
     
     def __init__(self):
-        self.base_path = "./march-machine-learning-mania-2025/"
-        self.model_path = "./ncaa_model.pkl"
+        import os
+        from pathlib import Path
+        from dotenv import load_dotenv
+        
+        # Load environment variables
+        load_dotenv()
+        
+        # Get paths from environment or use defaults
+        self.base_path = os.getenv('DATA_PATH', './march-machine-learning-mania-2025/')
+        self.model_path = os.getenv('MODEL_PATH', './ncaa_model.pkl')
+        self.use_sample_data = os.getenv('USE_SAMPLE_DATA', 'false').lower() == 'true'
+        
         self.model = None
         self.teams_data = None
         self.team_stats = None
@@ -71,8 +81,12 @@ class NCAAPredictor:
         """Load basic team data as fallback"""
         print("📊 Loading basic team data...")
         try:
-            self.teams_data = pd.read_csv(os.path.join(self.base_path, "MTeams.csv"))
-            print(f"✅ Loaded {len(self.teams_data)} teams")
+            if self.use_sample_data or not os.path.exists(os.path.join(self.base_path, "MTeams.csv")):
+                print("ℹ️ Using sample data...")
+                await self._create_sample_data()
+            else:
+                self.teams_data = pd.read_csv(os.path.join(self.base_path, "MTeams.csv"))
+                print(f"✅ Loaded {len(self.teams_data)} teams")
             
             # Set default metrics
             self.model_metrics = {
@@ -82,7 +96,43 @@ class NCAAPredictor:
             }
         except Exception as e:
             print(f"❌ Error loading basic data: {e}")
-            raise e
+            print("🔄 Attempting to use sample data...")
+            await self._create_sample_data()
+            
+    async def _create_sample_data(self):
+        """Create sample data for demonstration"""
+        import io
+        print("🔄 Generating sample data...")
+        
+        # Sample teams data
+        teams_data = """TeamID,TeamName,FirstD1Season,LastD1Season
+1101,North Carolina,1985,2025
+1102,Duke,1985,2025
+1103,Kentucky,1985,2025
+1104,Kansas,1985,2025"""
+        
+        # Sample seeds data
+        seeds_data = """Season,Seed,TeamID,Region
+2025,W01,1101,East
+2025,W02,1102,East
+2025,X01,1103,West
+2025,X02,1104,West"""
+        
+        # Sample results data
+        results_data = """Season,DayNum,WTeamID,WScore,LTeamID,LScore,WLoc,NumOT,WFGM,WFGA,WFGM3,WFGA3,WFTM,WFTA,WOR,WDR,WAst,WTO,WStl,WBlk,WPF
+2025,136,1101,75,1102,70,N,0,28,60,7,18,12,16,8,25,15,12,5,3,17
+2025,136,1103,82,1104,78,N,0,30,62,8,20,14,18,10,27,18,14,6,4,15"""
+        
+        # Create data directory if it doesn't exist
+        os.makedirs(self.base_path, exist_ok=True)
+        
+        # Save sample data
+        pd.read_csv(io.StringIO(teams_data)).to_csv(os.path.join(self.base_path, "MTeams.csv"), index=False)
+        pd.read_csv(io.StringIO(seeds_data)).to_csv(os.path.join(self.base_path, "MNCAATourneySeeds.csv"), index=False)
+        pd.read_csv(io.StringIO(results_data)).to_csv(os.path.join(self.base_path, "MNCAATourneyDetailedResults.csv"), index=False)
+        
+        self.teams_data = pd.read_csv(io.StringIO(teams_data))
+        print(f"✅ Generated sample data with {len(self.teams_data)} teams")
 
     async def _load_data(self):
         """Load NCAA tournament data"""
