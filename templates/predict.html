@@ -1,0 +1,319 @@
+{% extends "base.html" %}
+
+{% block title %}Team Predictions - NCAA March Madness Predictor 2025{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <div class="text-center mb-5">
+                <h1 class="display-5 fw-bold">
+                    <i class="fas fa-vs text-warning me-3"></i>
+                    Team vs Team Prediction
+                </h1>
+                <p class="lead text-muted">
+                    Select two teams to see our AI-powered prediction for their matchup
+                </p>
+            </div>
+
+            <!-- Prediction Form -->
+            <div class="prediction-form-card">
+                <form id="predictionForm">
+                    <div class="row g-4">
+                        <div class="col-md-5">
+                            <div class="team-selector">
+                                <label for="team1" class="form-label">
+                                    <i class="fas fa-users me-2"></i>Team 1
+                                </label>
+                                <select class="form-select" id="team1" name="team1_id" required>
+                                    <option value="">Select Team 1...</option>
+                                    {% for team in teams %}
+                                    <option value="{{ team.id }}">{{ team.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-2 text-center">
+                            <div class="vs-divider">
+                                <span class="vs-text">VS</span>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-5">
+                            <div class="team-selector">
+                                <label for="team2" class="form-label">
+                                    <i class="fas fa-users me-2"></i>Team 2
+                                </label>
+                                <select class="form-select" id="team2" name="team2_id" required>
+                                    <option value="">Select Team 2...</option>
+                                    {% for team in teams %}
+                                    <option value="{{ team.id }}">{{ team.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="text-center mt-4">
+                        <button type="submit" class="btn btn-primary btn-lg predict-btn">
+                            <i class="fas fa-brain me-2"></i>
+                            Predict Outcome
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Loading Spinner -->
+            <div id="loadingSpinner" class="text-center mt-4" style="display: none;">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="mt-2 text-muted">Analyzing matchup...</p>
+            </div>
+
+            <!-- Prediction Results -->
+            <div id="predictionResults" class="prediction-results" style="display: none;">
+                <div class="result-header">
+                    <h3 class="text-center mb-4">
+                        <i class="fas fa-trophy me-2"></i>
+                        Prediction Results
+                    </h3>
+                </div>
+
+                <div class="matchup-display">
+                    <div class="row align-items-center">
+                        <div class="col-md-5">
+                            <div class="team-result" id="team1Result">
+                                <div class="team-info">
+                                    <h4 class="team-name"></h4>
+                                    <p class="team-details"></p>
+                                </div>
+                                <div class="win-probability">
+                                    <div class="probability-bar">
+                                        <div class="probability-fill"></div>
+                                    </div>
+                                    <span class="probability-text"></span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-2 text-center">
+                            <div class="prediction-vs">
+                                <i class="fas fa-basketball-ball fa-2x text-warning"></i>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-5">
+                            <div class="team-result" id="team2Result">
+                                <div class="team-info">
+                                    <h4 class="team-name"></h4>
+                                    <p class="team-details"></p>
+                                </div>
+                                <div class="win-probability">
+                                    <div class="probability-bar">
+                                        <div class="probability-fill"></div>
+                                    </div>
+                                    <span class="probability-text"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="prediction-summary">
+                    <div class="winner-announcement">
+                        <h4>🏆 Predicted Winner: <span id="predictedWinner"></span></h4>
+                        <p>Confidence Level: <span id="confidenceLevel"></span></p>
+                    </div>
+                    
+                    <div class="model-info">
+                        <small class="text-muted">
+                            <i class="fas fa-info-circle me-1"></i>
+                            Prediction based on XGBoost ML model trained on 20+ years of tournament data
+                        </small>
+                    </div>
+                </div>
+
+                <div class="action-buttons text-center mt-4">
+                    <button class="btn btn-outline-primary" onclick="resetPrediction()">
+                        <i class="fas fa-redo me-2"></i>New Prediction
+                    </button>
+                    <button class="btn btn-success" onclick="shareResult()">
+                        <i class="fas fa-share me-2"></i>Share Result
+                    </button>
+                </div>
+            </div>
+
+            <!-- Error Display -->
+            <div id="errorDisplay" class="alert alert-danger mt-4" style="display: none;">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                <span id="errorMessage"></span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Popular Matchups -->
+    <div class="row mt-5">
+        <div class="col-12">
+            <h3 class="text-center mb-4">Popular Matchups</h3>
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <div class="popular-matchup" onclick="quickPredict(1104, 1181)">
+                        <span class="matchup-text">Alabama vs Kansas</span>
+                        <i class="fas fa-arrow-right"></i>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="popular-matchup" onclick="quickPredict(1242, 1207)">
+                        <span class="matchup-text">Kansas vs Georgetown</span>
+                        <i class="fas fa-arrow-right"></i>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="popular-matchup" onclick="quickPredict(1314, 1276)">
+                        <span class="matchup-text">Duke vs North Carolina</span>
+                        <i class="fas fa-arrow-right"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('predictionForm');
+    const loadingSpinner = document.getElementById('loadingSpinner');
+    const predictionResults = document.getElementById('predictionResults');
+    const errorDisplay = document.getElementById('errorDisplay');
+
+    form.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const team1Id = document.getElementById('team1').value;
+        const team2Id = document.getElementById('team2').value;
+        
+        if (!team1Id || !team2Id) {
+            showError('Please select both teams');
+            return;
+        }
+        
+        if (team1Id === team2Id) {
+            showError('Please select different teams');
+            return;
+        }
+        
+        await makePrediction(team1Id, team2Id);
+    });
+});
+
+async function makePrediction(team1Id, team2Id) {
+    const loadingSpinner = document.getElementById('loadingSpinner');
+    const predictionResults = document.getElementById('predictionResults');
+    const errorDisplay = document.getElementById('errorDisplay');
+    
+    // Show loading
+    loadingSpinner.style.display = 'block';
+    predictionResults.style.display = 'none';
+    errorDisplay.style.display = 'none';
+    
+    try {
+        const formData = new FormData();
+        formData.append('team1_id', team1Id);
+        formData.append('team2_id', team2Id);
+        
+        const response = await fetch('/api/predict-matchup', {
+            method: 'POST',
+            body: formData
+        });
+        
+        if (!response.ok) {
+            throw new Error('Prediction failed');
+        }
+        
+        const result = await response.json();
+        displayPrediction(result);
+        
+    } catch (error) {
+        showError('Error making prediction: ' + error.message);
+    } finally {
+        loadingSpinner.style.display = 'none';
+    }
+}
+
+function displayPrediction(result) {
+    const predictionResults = document.getElementById('predictionResults');
+    
+    // Update team 1 results
+    const team1Result = document.getElementById('team1Result');
+    team1Result.querySelector('.team-name').textContent = result.team1.name;
+    team1Result.querySelector('.team-details').textContent = `Avg Seed: ${result.team1.avg_seed.toFixed(1)}`;
+    
+    const team1Prob = Math.round(result.team1.win_probability * 100);
+    team1Result.querySelector('.probability-fill').style.width = team1Prob + '%';
+    team1Result.querySelector('.probability-text').textContent = team1Prob + '%';
+    
+    // Update team 2 results
+    const team2Result = document.getElementById('team2Result');
+    team2Result.querySelector('.team-name').textContent = result.team2.name;
+    team2Result.querySelector('.team-details').textContent = `Avg Seed: ${result.team2.avg_seed.toFixed(1)}`;
+    
+    const team2Prob = Math.round(result.team2.win_probability * 100);
+    team2Result.querySelector('.probability-fill').style.width = team2Prob + '%';
+    team2Result.querySelector('.probability-text').textContent = team2Prob + '%';
+    
+    // Update prediction summary
+    document.getElementById('predictedWinner').textContent = result.prediction;
+    document.getElementById('confidenceLevel').textContent = Math.round(result.confidence * 100) + '%';
+    
+    // Show results
+    predictionResults.style.display = 'block';
+    
+    // Scroll to results
+    predictionResults.scrollIntoView({ behavior: 'smooth' });
+}
+
+function showError(message) {
+    const errorDisplay = document.getElementById('errorDisplay');
+    document.getElementById('errorMessage').textContent = message;
+    errorDisplay.style.display = 'block';
+    setTimeout(() => {
+        errorDisplay.style.display = 'none';
+    }, 5000);
+}
+
+function resetPrediction() {
+    document.getElementById('predictionForm').reset();
+    document.getElementById('predictionResults').style.display = 'none';
+    document.getElementById('errorDisplay').style.display = 'none';
+}
+
+function shareResult() {
+    const winner = document.getElementById('predictedWinner').textContent;
+    const confidence = document.getElementById('confidenceLevel').textContent;
+    
+    const text = `NCAA Predictor says ${winner} wins with ${confidence} confidence! Check it out: ${window.location.href}`;
+    
+    if (navigator.share) {
+        navigator.share({
+            title: 'NCAA March Madness Prediction',
+            text: text,
+            url: window.location.href
+        });
+    } else {
+        navigator.clipboard.writeText(text).then(() => {
+            alert('Result copied to clipboard!');
+        });
+    }
+}
+
+function quickPredict(team1Id, team2Id) {
+    document.getElementById('team1').value = team1Id;
+    document.getElementById('team2').value = team2Id;
+    makePrediction(team1Id, team2Id);
+}
+</script>
+{% endblock %} 
